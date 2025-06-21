@@ -155,7 +155,8 @@ const loadCommands = async () => {
     ElMessage.error(`加载命令失败: ${error.message}`)
     
     // Use fallback data if API fails
-    commandData.value = fallbackCommandData.value
+    commandData.value = {}
+    ElMessage.warning('已切换到离线模式，部分功能可能受限')
   } finally {
     loading.value = false
   }
