@@ -469,9 +469,7 @@ const autoSave = () => {
   }, 2000)
 }
 
-const togglePreview = () => {
-  showPreview.value = !showPreview.value
-}
+// 移除原有的预览切换功能，md-editor-v3内置预览功能
 
 const updateTags = () => {
   if (selectedNote.value) {
