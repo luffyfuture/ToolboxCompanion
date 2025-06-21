@@ -107,7 +107,15 @@ const loadCommands = async () => {
   loading.value = true
   try {
     const response = await fetch('/api/red-team-commands')
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
     const data = await response.json()
+    console.log('Loaded commands:', data)
+    
+    if (!Array.isArray(data)) {
+      throw new Error('Invalid response format')
+    }
     
     // Group commands by category and subcategory
     const grouped: any = {}
@@ -118,19 +126,36 @@ const loadCommands = async () => {
       if (!grouped[cmd.category][cmd.subCategory]) {
         grouped[cmd.category][cmd.subCategory] = []
       }
+      
+      let tags = []
+      try {
+        tags = cmd.tags ? JSON.parse(cmd.tags) : []
+      } catch (e) {
+        tags = cmd.tags ? [cmd.tags] : []
+      }
+      
       grouped[cmd.category][cmd.subCategory].push({
         title: cmd.title,
         code: cmd.code,
         description: cmd.description,
-        tags: cmd.tags ? JSON.parse(cmd.tags) : []
+        tags: tags
       })
     })
     
     commandData.value = grouped
     commands.value = data
+    
+    // Set active tab to first category if available
+    const categories = Object.keys(grouped)
+    if (categories.length > 0 && !activeTab.value) {
+      activeTab.value = categories[0]
+    }
   } catch (error) {
     console.error('Failed to load commands:', error)
-    ElMessage.error('加载命令失败')
+    ElMessage.error(`加载命令失败: ${error.message}`)
+    
+    // Use fallback data if API fails
+    commandData.value = fallbackCommandData.value
   } finally {
     loading.value = false
   }

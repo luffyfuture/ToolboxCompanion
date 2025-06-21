@@ -198,22 +198,40 @@ export class DatabaseStorage implements IStorage {
 
   // Red Team Commands implementation
   async getRedTeamCommands(userId?: number, category?: string, subCategory?: string): Promise<RedTeamCommand[]> {
-    let query = db.select().from(redTeamCommands);
-    
-    if (category) {
-      query = query.where(eq(redTeamCommands.category, category)) as any;
+    try {
+      console.log('Storage: getRedTeamCommands called with:', { userId, category, subCategory });
+      
+      let whereConditions = [];
+      
+      if (category) {
+        whereConditions.push(eq(redTeamCommands.category, category));
+      }
+      if (subCategory) {
+        whereConditions.push(eq(redTeamCommands.subCategory, subCategory));
+      }
+      
+      let query = db.select().from(redTeamCommands);
+      
+      if (whereConditions.length > 0) {
+        query = query.where(whereConditions.length === 1 ? whereConditions[0] : and(...whereConditions as any)) as any;
+      }
+      
+      const results = await query.orderBy(redTeamCommands.category, redTeamCommands.subCategory);
+      console.log('Storage: Found raw results:', results.length);
+      
+      let filteredResults;
+      if (userId) {
+        filteredResults = results.filter(cmd => !cmd.isCustom || cmd.userId === userId);
+      } else {
+        filteredResults = results.filter(cmd => !cmd.isCustom);
+      }
+      
+      console.log('Storage: After filtering:', filteredResults.length);
+      return filteredResults;
+    } catch (error) {
+      console.error('Storage: Error in getRedTeamCommands:', error);
+      throw error;
     }
-    if (subCategory) {
-      query = query.where(eq(redTeamCommands.subCategory, subCategory)) as any;
-    }
-    
-    const results = await query.orderBy(redTeamCommands.category, redTeamCommands.subCategory);
-    
-    if (userId) {
-      return results.filter(cmd => !cmd.isCustom || cmd.userId === userId);
-    }
-    
-    return results.filter(cmd => !cmd.isCustom);
   }
 
   async getRedTeamCommand(id: number): Promise<RedTeamCommand | undefined> {
