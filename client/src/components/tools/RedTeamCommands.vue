@@ -79,12 +79,87 @@
         </el-tabs>
       </div>
     </div>
+
+    <!-- 添加/编辑命令对话框 -->
+    <el-dialog 
+      v-model="showAddDialog" 
+      :title="editingCommand ? '编辑命令' : '添加命令'"
+      width="600px"
+      @close="resetForm"
+    >
+      <el-form :model="commandForm" :rules="formRules" ref="formRef" label-width="100px">
+        <el-form-item label="命令标题" prop="title">
+          <el-input v-model="commandForm.title" placeholder="请输入命令标题" />
+        </el-form-item>
+        
+        <el-form-item label="命令代码" prop="code">
+          <el-input 
+            v-model="commandForm.code" 
+            type="textarea" 
+            :rows="4"
+            placeholder="请输入命令代码"
+          />
+        </el-form-item>
+        
+        <el-form-item label="命令描述" prop="description">
+          <el-input 
+            v-model="commandForm.description" 
+            type="textarea" 
+            :rows="3"
+            placeholder="请输入命令描述"
+          />
+        </el-form-item>
+        
+        <el-form-item label="分类" prop="category">
+          <el-select v-model="commandForm.category" placeholder="选择分类" style="width: 100%">
+            <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
+            <el-option label="自定义分类" value="custom" />
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item v-if="commandForm.category === 'custom'" label="自定义分类" prop="customCategory">
+          <el-input v-model="commandForm.customCategory" placeholder="请输入自定义分类名称" />
+        </el-form-item>
+        
+        <el-form-item label="子分类" prop="subCategory">
+          <el-input v-model="commandForm.subCategory" placeholder="请输入子分类" />
+        </el-form-item>
+        
+        <el-form-item label="标签">
+          <el-input 
+            v-model="tagsInput" 
+            placeholder="请输入标签，用逗号分隔"
+            @blur="updateTags"
+          />
+          <div class="mt-2" v-if="commandForm.tags.length > 0">
+            <el-tag 
+              v-for="tag in commandForm.tags" 
+              :key="tag" 
+              closable 
+              @close="removeTag(tag)"
+              class="mr-2"
+            >
+              {{ tag }}
+            </el-tag>
+          </div>
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showAddDialog = false">取消</el-button>
+          <el-button type="primary" @click="saveCommand" :loading="saving">
+            {{ editingCommand ? '更新' : '保存' }}
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, DocumentCopy } from '@element-plus/icons-vue'
 
 interface Command {
@@ -97,6 +172,41 @@ interface Command {
 const searchQuery = ref('')
 const selectedCategory = ref('')
 const activeTab = ref('系统信息收集')
+
+// CRUD 相关状态
+const showAddDialog = ref(false)
+const editingCommand = ref(null)
+const saving = ref(false)
+const formRef = ref()
+
+// 表单数据
+const commandForm = ref({
+  title: '',
+  code: '',
+  description: '',
+  category: '',
+  customCategory: '',
+  subCategory: '',
+  tags: []
+})
+
+const tagsInput = ref('')
+
+// 表单验证规则
+const formRules = {
+  title: [
+    { required: true, message: '请输入命令标题', trigger: 'blur' }
+  ],
+  code: [
+    { required: true, message: '请输入命令代码', trigger: 'blur' }
+  ],
+  category: [
+    { required: true, message: '请选择分类', trigger: 'change' }
+  ],
+  subCategory: [
+    { required: true, message: '请输入子分类', trigger: 'blur' }
+  ]
+}
 
 const commandData = ref<any>({})
 const commands = ref<Command[]>([])
@@ -134,11 +244,17 @@ const loadCommands = async () => {
         tags = cmd.tags ? [cmd.tags] : []
       }
       
+      // 保留完整的命令信息，包括ID用于编辑和删除
       grouped[cmd.category][cmd.subCategory].push({
+        id: cmd.id,
         title: cmd.title,
         code: cmd.code,
         description: cmd.description,
-        tags: tags
+        category: cmd.category,
+        subCategory: cmd.subCategory,
+        tags: tags,
+        isCustom: cmd.isCustom,
+        userId: cmd.userId
       })
     })
     
@@ -759,6 +875,149 @@ const copyCommand = async (command: string) => {
   } catch (error) {
     ElMessage.error('复制失败')
   }
+}
+
+// CRUD 操作函数
+const resetForm = () => {
+  commandForm.value = {
+    title: '',
+    code: '',
+    description: '',
+    category: '',
+    customCategory: '',
+    subCategory: '',
+    tags: []
+  }
+  tagsInput.value = ''
+  editingCommand.value = null
+  if (formRef.value) {
+    formRef.value.clearValidate()
+  }
+}
+
+const updateTags = () => {
+  if (tagsInput.value.trim()) {
+    const newTags = tagsInput.value.split(',').map(tag => tag.trim()).filter(tag => tag)
+    commandForm.value.tags = [...new Set([...commandForm.value.tags, ...newTags])]
+    tagsInput.value = ''
+  }
+}
+
+const removeTag = (tag) => {
+  const index = commandForm.value.tags.indexOf(tag)
+  if (index > -1) {
+    commandForm.value.tags.splice(index, 1)
+  }
+}
+
+const editCommand = (command) => {
+  editingCommand.value = command
+  commandForm.value = {
+    title: command.title,
+    code: command.code,
+    description: command.description || '',
+    category: command.category,
+    customCategory: '',
+    subCategory: command.subCategory,
+    tags: command.tags || []
+  }
+  showAddDialog.value = true
+}
+
+const saveCommand = async () => {
+  if (!formRef.value) return
+  
+  try {
+    await formRef.value.validate()
+    saving.value = true
+    
+    const finalCategory = commandForm.value.category === 'custom' 
+      ? commandForm.value.customCategory 
+      : commandForm.value.category
+    
+    const commandData = {
+      title: commandForm.value.title,
+      code: commandForm.value.code,
+      description: commandForm.value.description,
+      category: finalCategory,
+      subCategory: commandForm.value.subCategory,
+      tags: JSON.stringify(commandForm.value.tags),
+      userId: 1,
+      isCustom: true
+    }
+    
+    let response
+    if (editingCommand.value) {
+      // 更新命令
+      response = await fetch(`/api/red-team-commands/${editingCommand.value.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(commandData)
+      })
+    } else {
+      // 创建新命令
+      response = await fetch('/api/red-team-commands', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(commandData)
+      })
+    }
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    ElMessage.success(editingCommand.value ? '命令更新成功' : '命令添加成功')
+    showAddDialog.value = false
+    resetForm()
+    await loadCommands()
+    
+  } catch (error) {
+    console.error('Save command error:', error)
+    ElMessage.error(`保存失败: ${error.message}`)
+  } finally {
+    saving.value = false
+  }
+}
+
+const deleteCommand = async (command) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除命令 "${command.title}" 吗？`,
+      '确认删除',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    const response = await fetch(`/api/red-team-commands/${command.id}`, {
+      method: 'DELETE'
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    ElMessage.success('命令删除成功')
+    await loadCommands()
+    
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Delete command error:', error)
+      ElMessage.error(`删除失败: ${error.message}`)
+    }
+  }
+}
+
+const refreshData = () => {
+  loadCommands()
+  ElMessage.success('数据已刷新')
 }
 
 onMounted(() => {
