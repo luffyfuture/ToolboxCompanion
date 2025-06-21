@@ -88,6 +88,7 @@ import PasswordGenerator from './components/tools/PasswordGenerator.vue'
 import HashGenerator from './components/tools/HashGenerator.vue'
 import SystemInfo from './components/tools/SystemInfo.vue'
 import Notebook from './components/tools/Notebook.vue'
+import RedTeamCommands from './components/tools/RedTeamCommands.vue'
 
 interface Tool {
   id: string
@@ -186,13 +187,21 @@ const tools: Tool[] = [
     icon: 'book',
     component: Notebook,
     category: '文档工具'
+  },
+  {
+    id: 'red-team-commands',
+    name: '红队命令',
+    description: '红队渗透测试常用命令集合',
+    icon: 'terminal',
+    component: RedTeamCommands,
+    category: '安全工具'
   }
 ]
 
 const activeToolId = ref('calculator')
 
 const toolCategories = computed(() => {
-  const categories = ['数学工具', '文本工具', '生成器', '系统工具', '文档工具']
+  const categories = ['数学工具', '文本工具', '生成器', '系统工具', '文档工具', '安全工具']
   return categories.map(categoryName => ({
     id: categoryName,
     name: categoryName,
