@@ -33,8 +33,8 @@ try {
     CREATE TABLE IF NOT EXISTS note_categories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      parent_id INTEGER REFERENCES note_categories(id),
-      user_id INTEGER REFERENCES users(id),
+      parent_id INTEGER,
+      user_id INTEGER,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -43,8 +43,8 @@ try {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       content TEXT NOT NULL,
-      category_id INTEGER REFERENCES note_categories(id),
-      user_id INTEGER REFERENCES users(id),
+      category_id INTEGER,
+      user_id INTEGER,
       tags TEXT,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL

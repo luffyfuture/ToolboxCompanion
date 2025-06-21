@@ -71,15 +71,22 @@ export class DatabaseStorage implements IStorage {
 
   async createNoteCategory(category: InsertNoteCategory): Promise<NoteCategory> {
     const now = new Date();
-    const [newCategory] = await db
-      .insert(noteCategories)
-      .values({
-        ...category,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
-    return newCategory;
+    try {
+      const [newCategory] = await db
+        .insert(noteCategories)
+        .values({
+          name: category.name,
+          parentId: category.parentId || null,
+          userId: category.userId || 1,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      return newCategory;
+    } catch (error) {
+      console.error('Error creating note category:', error);
+      throw error;
+    }
   }
 
   async updateNoteCategory(id: number, category: Partial<InsertNoteCategory>): Promise<NoteCategory> {
@@ -125,15 +132,24 @@ export class DatabaseStorage implements IStorage {
 
   async createNote(note: InsertNote): Promise<Note> {
     const now = new Date();
-    const [newNote] = await db
-      .insert(notes)
-      .values({
-        ...note,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
-    return newNote;
+    try {
+      const [newNote] = await db
+        .insert(notes)
+        .values({
+          title: note.title,
+          content: note.content,
+          categoryId: note.categoryId || null,
+          userId: note.userId || 1,
+          tags: note.tags || null,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      return newNote;
+    } catch (error) {
+      console.error('Error creating note:', error);
+      throw error;
+    }
   }
 
   async updateNote(id: number, note: Partial<InsertNote>): Promise<Note> {
