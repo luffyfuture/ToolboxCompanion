@@ -47,17 +47,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/note-categories", async (req, res) => {
     try {
+      console.log('Creating category with data:', req.body);
       const categoryData = insertNoteCategorySchema.parse({
-        ...req.body,
-        userId: req.body.userId || 1 // Default user for demo
+        name: req.body.name,
+        parentId: req.body.parentId || null,
+        userId: req.body.userId || 1
       });
       const category = await storage.createNoteCategory(categoryData);
       res.json(category);
     } catch (error) {
+      console.error('Category creation error:', error);
       if (error instanceof ZodError) {
         res.status(400).json({ error: "Invalid category data", details: error.errors });
       } else {
-        res.status(500).json({ error: "Failed to create category" });
+        res.status(500).json({ error: "Failed to create category", details: (error as Error).message });
       }
     }
   });
@@ -115,17 +118,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/notes", async (req, res) => {
     try {
+      console.log('Creating note with data:', req.body);
       const noteData = insertNoteSchema.parse({
-        ...req.body,
-        userId: req.body.userId || 1 // Default user for demo
+        title: req.body.title,
+        content: req.body.content,
+        categoryId: req.body.categoryId || null,
+        userId: req.body.userId || 1,
+        tags: req.body.tags || null
       });
       const note = await storage.createNote(noteData);
       res.json(note);
     } catch (error) {
+      console.error('Note creation error:', error);
       if (error instanceof ZodError) {
         res.status(400).json({ error: "Invalid note data", details: error.errors });
       } else {
-        res.status(500).json({ error: "Failed to create note" });
+        res.status(500).json({ error: "Failed to create note", details: (error as Error).message });
       }
     }
   });
