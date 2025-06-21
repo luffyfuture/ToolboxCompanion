@@ -114,6 +114,7 @@ Changelog:
 - June 21, 2025. Enhanced red team commands with database penetration techniques from PentestDB
 - June 21, 2025. Completed full red team commands database integration with 200+ commands
 - June 21, 2025. Imported comprehensive command set from safe6Sec/PentestDB and safe6Sec/command
+- June 21, 2025. Upgraded Markdown editor to md-editor-v3 with enhanced features and better UX
 ```
 
 ## User Preferences
