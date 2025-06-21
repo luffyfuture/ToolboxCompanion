@@ -172,10 +172,10 @@
               ref="textareaRef"
               v-model="selectedNote.content"
               type="textarea"
-              :rows="18"
               placeholder="开始写作...支持Markdown格式"
               @input="autoSave"
               class="markdown-textarea"
+              resize="none"
             />
           </div>
           <div v-else class="markdown-preview" v-html="renderedMarkdown"></div>
@@ -574,11 +574,13 @@ watch(selectedCategory, (newCategory) => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 
 .notebook-layout {
   display: flex;
-  height: 600px;
+  flex: 1;
+  height: calc(100vh - 120px);
   border: 1px solid #e6e6e6;
   border-radius: 8px;
   overflow: hidden;
@@ -586,7 +588,7 @@ watch(selectedCategory, (newCategory) => {
 
 @media (max-width: 768px) {
   .notebook-layout {
-    height: calc(100vh - 120px);
+    height: calc(100vh - 160px);
   }
 }
 
@@ -760,15 +762,24 @@ watch(selectedCategory, (newCategory) => {
 .editor-content {
   flex: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .markdown-editor {
-  height: 100%;
+  flex: 1;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.markdown-textarea {
+  flex: 1 !important;
+  height: 100% !important;
 }
 
 .markdown-preview {
-  height: 100%;
+  flex: 1;
   padding: 16px;
   overflow-y: auto;
   background: #fff;
@@ -810,6 +821,14 @@ watch(selectedCategory, (newCategory) => {
 .markdown-textarea {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   line-height: 1.6;
+}
+
+.markdown-textarea :deep(.el-textarea__inner) {
+  height: 100% !important;
+  min-height: 400px !important;
+  resize: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .markdown-preview {
