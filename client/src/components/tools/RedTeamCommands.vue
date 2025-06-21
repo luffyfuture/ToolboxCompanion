@@ -21,6 +21,14 @@
             :value="category"
           />
         </el-select>
+        <el-button type="primary" @click="showAddDialog = true">
+          <i class="fas fa-plus"></i>
+          添加命令
+        </el-button>
+        <el-button @click="refreshData">
+          <i class="fas fa-sync-alt"></i>
+          刷新
+        </el-button>
       </div>
     </div>
 
@@ -48,12 +56,30 @@
                   >
                     <div class="command-header">
                       <h4>{{ command.title }}</h4>
-                      <el-button
-                        size="small"
-                        @click="copyCommand(command.code)"
-                        :icon="DocumentCopy"
-                        circle
-                      />
+                      <div class="command-actions">
+                        <el-button
+                          size="small"
+                          @click="copyCommand(command.code)"
+                          :icon="DocumentCopy"
+                          circle
+                        />
+                        <el-button
+                          size="small"
+                          type="primary"
+                          @click="editCommand(command)"
+                          circle
+                        >
+                          <i class="fas fa-edit"></i>
+                        </el-button>
+                        <el-button
+                          size="small"
+                          type="danger"
+                          @click="deleteCommand(command)"
+                          circle
+                        >
+                          <i class="fas fa-trash"></i>
+                        </el-button>
+                      </div>
                     </div>
                     <div class="command-description" v-if="command.description">
                       {{ command.description }}
