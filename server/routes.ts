@@ -177,6 +177,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Red Team Commands routes
+  app.get("/api/red-team-commands", async (req, res) => {
+    try {
+      const { userId, category, subCategory } = req.query;
+      console.log('Getting red team commands with params:', { userId, category, subCategory });
+      const commands = await storage.getRedTeamCommands(
+        userId ? Number(userId) : undefined,
+        category as string,
+        subCategory as string
+      );
+      console.log('Found commands:', commands.length);
+      res.json(commands);
+    } catch (error) {
+      console.error("Get red team commands error:", error);
+      res.status(500).json({ error: "Failed to get red team commands" });
+    }
+  });
+
+  app.get("/api/red-team-commands/categories", async (req, res) => {
+    try {
+      const categories = await storage.getRedTeamCommandCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Get red team command categories error:", error);
+      res.status(500).json({ error: "Failed to get categories" });
+    }
+  });
+
+  app.get("/api/red-team-commands/search", async (req, res) => {
+    try {
+      const { q, userId } = req.query;
+      if (!q || typeof q !== 'string') {
+        return res.status(400).json({ error: "Query parameter required" });
+      }
+      
+      const commands = await storage.searchRedTeamCommands(q, userId ? Number(userId) : undefined);
+      res.json(commands);
+    } catch (error) {
+      console.error("Search red team commands error:", error);
+      res.status(500).json({ error: "Failed to search commands" });
+    }
+  });
+
+  app.get("/api/red-team-commands/:id", async (req, res) => {
+    try {
+      const command = await storage.getRedTeamCommand(Number(req.params.id));
+      if (!command) {
+        return res.status(404).json({ error: "Command not found" });
+      }
+      res.json(command);
+    } catch (error) {
+      console.error("Get red team command error:", error);
+      res.status(500).json({ error: "Failed to get command" });
+    }
+  });
+
+  app.post("/api/red-team-commands", async (req, res) => {
+    try {
+      console.log('Creating red team command with data:', req.body);
+      const commandData = insertRedTeamCommandSchema.parse({
+        title: req.body.title,
+        code: req.body.code,
+        description: req.body.description,
+        category: req.body.category,
+        subCategory: req.body.subCategory,
+        tags: req.body.tags,
+        userId: req.body.userId || 1,
+        isCustom: req.body.isCustom !== undefined ? req.body.isCustom : true
+      });
+      const command = await storage.createRedTeamCommand(commandData);
+      res.json(command);
+    } catch (error) {
+      console.error('Red team command creation error:', error);
+      if (error instanceof ZodError) {
+        res.status(400).json({ error: "Invalid command data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create command", details: (error as Error).message });
+      }
+    }
+  });
+
+  app.put("/api/red-team-commands/:id", async (req, res) => {
+    try {
+      const commandData = insertRedTeamCommandSchema.partial().parse(req.body);
+      const command = await storage.updateRedTeamCommand(Number(req.params.id), commandData);
+      res.json(command);
+    } catch (error) {
+      console.error("Update red team command error:", error);
+      if (error instanceof ZodError) {
+        res.status(400).json({ error: "Invalid command data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to update command" });
+      }
+    }
+  });
+
+  app.delete("/api/red-team-commands/:id", async (req, res) => {
+    try {
+      await storage.deleteRedTeamCommand(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete red team command error:", error);
+      res.status(500).json({ error: "Failed to delete command" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
