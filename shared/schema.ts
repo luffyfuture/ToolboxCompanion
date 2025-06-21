@@ -38,6 +38,20 @@ export const notes = sqliteTable("notes", {
   updatedAt: integer("updated_at", { mode: 'timestamp' }).notNull(),
 });
 
+export const redTeamCommands = sqliteTable("red_team_commands", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  code: text("code").notNull(),
+  description: text("description"),
+  category: text("category").notNull(),
+  subCategory: text("sub_category").notNull(),
+  tags: text("tags"),
+  userId: integer("user_id"),
+  isCustom: integer("is_custom", { mode: "boolean" }).default(false),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   notes: many(notes),
   noteCategories: many(noteCategories),
@@ -71,6 +85,13 @@ export const notesRelations = relations(notes, ({ one }) => ({
   }),
 }));
 
+export const redTeamCommandsRelations = relations(redTeamCommands, ({ one }) => ({
+  user: one(users, {
+    fields: [redTeamCommands.userId],
+    references: [users.id],
+  }),
+}));
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -98,6 +119,17 @@ export const insertNoteSchema = createInsertSchema(notes).pick({
   tags: true,
 });
 
+export const insertRedTeamCommandSchema = createInsertSchema(redTeamCommands).pick({
+  title: true,
+  code: true,
+  description: true,
+  category: true,
+  subCategory: true,
+  tags: true,
+  userId: true,
+  isCustom: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertTool = z.infer<typeof insertToolSchema>;
@@ -106,3 +138,5 @@ export type InsertNoteCategory = z.infer<typeof insertNoteCategorySchema>;
 export type NoteCategory = typeof noteCategories.$inferSelect;
 export type InsertNote = z.infer<typeof insertNoteSchema>;
 export type Note = typeof notes.$inferSelect;
+export type InsertRedTeamCommand = z.infer<typeof insertRedTeamCommandSchema>;
+export type RedTeamCommand = typeof redTeamCommands.$inferSelect;

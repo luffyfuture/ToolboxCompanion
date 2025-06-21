@@ -83,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, DocumentCopy } from '@element-plus/icons-vue'
 
@@ -98,7 +98,46 @@ const searchQuery = ref('')
 const selectedCategory = ref('')
 const activeTab = ref('系统信息收集')
 
-const commandData = ref({
+const commandData = ref<any>({})
+const commands = ref<Command[]>([])
+const loading = ref(false)
+
+// Load commands from database
+const loadCommands = async () => {
+  loading.value = true
+  try {
+    const response = await fetch('/api/red-team-commands')
+    const data = await response.json()
+    
+    // Group commands by category and subcategory
+    const grouped: any = {}
+    data.forEach((cmd: any) => {
+      if (!grouped[cmd.category]) {
+        grouped[cmd.category] = {}
+      }
+      if (!grouped[cmd.category][cmd.subCategory]) {
+        grouped[cmd.category][cmd.subCategory] = []
+      }
+      grouped[cmd.category][cmd.subCategory].push({
+        title: cmd.title,
+        code: cmd.code,
+        description: cmd.description,
+        tags: cmd.tags ? JSON.parse(cmd.tags) : []
+      })
+    })
+    
+    commandData.value = grouped
+    commands.value = data
+  } catch (error) {
+    console.error('Failed to load commands:', error)
+    ElMessage.error('加载命令失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// Original hardcoded data as fallback
+const fallbackCommandData = ref({
   '系统信息收集': {
     '基础信息': [
       {
@@ -665,6 +704,13 @@ const commandData = ref({
 
 const categories = computed(() => Object.keys(commandData.value))
 
+// Watch for data changes and set active tab
+watch(categories, (newCategories) => {
+  if (newCategories.length > 0 && !activeTab.value) {
+    activeTab.value = newCategories[0]
+  }
+}, { immediate: true })
+
 const filteredCommands = (commands: Command[]) => {
   if (!searchQuery.value) return commands
   
@@ -690,10 +736,7 @@ const copyCommand = async (command: string) => {
 }
 
 onMounted(() => {
-  // Initialize with first category
-  if (categories.value.length > 0) {
-    activeTab.value = categories.value[0]
-  }
+  loadCommands()
 })
 </script>
 

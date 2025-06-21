@@ -2,12 +2,15 @@ import {
   users, 
   notes, 
   noteCategories,
+  redTeamCommands,
   type User, 
   type InsertUser,
   type Note,
   type InsertNote,
   type NoteCategory,
-  type InsertNoteCategory
+  type InsertNoteCategory,
+  type RedTeamCommand,
+  type InsertRedTeamCommand
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, like, or, desc, asc, and } from "drizzle-orm";
@@ -31,6 +34,15 @@ export interface IStorage {
   updateNote(id: number, note: Partial<InsertNote>): Promise<Note>;
   deleteNote(id: number): Promise<void>;
   searchNotes(userId: number, query: string): Promise<Note[]>;
+  
+  // Red Team Commands
+  getRedTeamCommands(userId?: number, category?: string, subCategory?: string): Promise<RedTeamCommand[]>;
+  getRedTeamCommand(id: number): Promise<RedTeamCommand | undefined>;
+  createRedTeamCommand(command: InsertRedTeamCommand): Promise<RedTeamCommand>;
+  updateRedTeamCommand(id: number, command: Partial<InsertRedTeamCommand>): Promise<RedTeamCommand>;
+  deleteRedTeamCommand(id: number): Promise<void>;
+  searchRedTeamCommands(query: string, userId?: number): Promise<RedTeamCommand[]>;
+  getRedTeamCommandCategories(): Promise<{category: string, subCategories: string[]}[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -182,6 +194,128 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(desc(notes.updatedAt));
+  }
+
+  // Red Team Commands implementation
+  async getRedTeamCommands(userId?: number, category?: string, subCategory?: string): Promise<RedTeamCommand[]> {
+    let query = db.select().from(redTeamCommands);
+    
+    if (category) {
+      query = query.where(eq(redTeamCommands.category, category)) as any;
+    }
+    if (subCategory) {
+      query = query.where(eq(redTeamCommands.subCategory, subCategory)) as any;
+    }
+    
+    const results = await query.orderBy(redTeamCommands.category, redTeamCommands.subCategory);
+    
+    if (userId) {
+      return results.filter(cmd => !cmd.isCustom || cmd.userId === userId);
+    }
+    
+    return results.filter(cmd => !cmd.isCustom);
+  }
+
+  async getRedTeamCommand(id: number): Promise<RedTeamCommand | undefined> {
+    const [command] = await db
+      .select()
+      .from(redTeamCommands)
+      .where(eq(redTeamCommands.id, id));
+    return command || undefined;
+  }
+
+  async createRedTeamCommand(command: InsertRedTeamCommand): Promise<RedTeamCommand> {
+    const now = new Date();
+    try {
+      const [newCommand] = await db
+        .insert(redTeamCommands)
+        .values({
+          title: command.title,
+          code: command.code,
+          description: command.description || null,
+          category: command.category,
+          subCategory: command.subCategory,
+          tags: command.tags || null,
+          userId: command.userId || 1,
+          isCustom: command.isCustom || false,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      return newCommand;
+    } catch (error) {
+      console.error('Error creating red team command:', error);
+      throw error;
+    }
+  }
+
+  async updateRedTeamCommand(id: number, command: Partial<InsertRedTeamCommand>): Promise<RedTeamCommand> {
+    const [updatedCommand] = await db
+      .update(redTeamCommands)
+      .set({
+        ...command,
+        updatedAt: new Date(),
+      })
+      .where(eq(redTeamCommands.id, id))
+      .returning();
+    
+    if (!updatedCommand) {
+      throw new Error('Command not found');
+    }
+    
+    return updatedCommand;
+  }
+
+  async deleteRedTeamCommand(id: number): Promise<void> {
+    await db
+      .delete(redTeamCommands)
+      .where(eq(redTeamCommands.id, id));
+  }
+
+  async searchRedTeamCommands(query: string, userId?: number): Promise<RedTeamCommand[]> {
+    const searchResults = await db
+      .select()
+      .from(redTeamCommands)
+      .where(
+        or(
+          like(redTeamCommands.title, `%${query}%`),
+          like(redTeamCommands.code, `%${query}%`),
+          like(redTeamCommands.description, `%${query}%`),
+          like(redTeamCommands.tags, `%${query}%`)
+        )
+      )
+      .orderBy(redTeamCommands.category, redTeamCommands.subCategory);
+    
+    if (userId) {
+      return searchResults.filter(cmd => !cmd.isCustom || cmd.userId === userId);
+    }
+    
+    return searchResults.filter(cmd => !cmd.isCustom);
+  }
+
+  async getRedTeamCommandCategories(): Promise<{category: string, subCategories: string[]}[]> {
+    const results = await db
+      .select({
+        category: redTeamCommands.category,
+        subCategory: redTeamCommands.subCategory
+      })
+      .from(redTeamCommands)
+      .groupBy(redTeamCommands.category, redTeamCommands.subCategory)
+      .orderBy(redTeamCommands.category, redTeamCommands.subCategory);
+    
+    const categoryMap = new Map<string, Set<string>>();
+    
+    results.forEach(({ category, subCategory }) => {
+      if (!categoryMap.has(category)) {
+        categoryMap.set(category, new Set());
+      }
+      categoryMap.get(category)!.add(subCategory);
+    });
+    
+    return Array.from(categoryMap.entries()).map(([category, subCategories]) => ({
+      category,
+      subCategories: Array.from(subCategories)
+    }));
   }
 }
 
