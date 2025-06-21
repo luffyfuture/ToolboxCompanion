@@ -1,9 +1,29 @@
 <template>
   <div class="notebook-container">
+    <!-- Mobile Header -->
+    <div class="mobile-header md:hidden">
+      <div class="flex items-center justify-between p-4 border-b">
+        <h2 class="text-lg font-semibold">笔记本</h2>
+        <div class="flex gap-2">
+          <el-button size="small" @click="showSidebar = !showSidebar">
+            {{ showSidebar ? '隐藏' : '显示' }}分类
+          </el-button>
+          <el-button 
+            type="primary" 
+            size="small" 
+            @click="showCreateCategory = true"
+            :icon="Plus"
+          >
+            新建
+          </el-button>
+        </div>
+      </div>
+    </div>
+
     <div class="notebook-layout">
       <!-- Left Sidebar - Categories -->
-      <div class="notebook-sidebar">
-        <div class="sidebar-header">
+      <div class="notebook-sidebar" :class="{ 'mobile-hidden': !showSidebar }">
+        <div class="sidebar-header hidden md:flex">
           <h3>笔记本</h3>
           <el-button 
             type="primary" 
@@ -60,7 +80,7 @@
       </div>
 
       <!-- Middle Panel - Notes List -->
-      <div class="notes-list-panel">
+      <div class="notes-list-panel" :class="{ 'mobile-hidden': selectedNote && isMobile }">
         <div class="notes-header">
           <h4>{{ selectedCategory ? selectedCategory.name : '所有笔记' }}</h4>
           <el-button 
@@ -93,6 +113,13 @@
 
       <!-- Right Panel - Editor -->
       <div class="editor-panel" v-if="selectedNote">
+        <!-- Mobile back button -->
+        <div class="mobile-back md:hidden">
+          <el-button @click="selectedNote = null" size="small">
+            ← 返回列表
+          </el-button>
+        </div>
+
         <div class="editor-header">
           <el-input
             v-model="selectedNote.title"
@@ -101,22 +128,54 @@
             class="title-input"
           />
           <div class="editor-actions">
-            <el-button @click="togglePreview" :type="showPreview ? 'primary' : 'default'">
+            <el-button @click="togglePreview" :type="showPreview ? 'primary' : 'default'" size="small">
               {{ showPreview ? '编辑' : '预览' }}
             </el-button>
-            <el-button @click="saveNote" type="primary">保存</el-button>
-            <el-button @click="deleteNote(selectedNote)" type="danger">删除</el-button>
+            <el-button @click="saveNote" type="primary" size="small">保存</el-button>
+            <el-button @click="deleteNote(selectedNote)" type="danger" size="small">删除</el-button>
+          </div>
+        </div>
+
+        <!-- Markdown toolbar -->
+        <div class="markdown-toolbar" v-if="!showPreview">
+          <div class="toolbar-group">
+            <el-button size="small" @click="insertMarkdown('**', '**')" title="粗体">
+              <strong>B</strong>
+            </el-button>
+            <el-button size="small" @click="insertMarkdown('*', '*')" title="斜体">
+              <em>I</em>
+            </el-button>
+            <el-button size="small" @click="insertMarkdown('~~', '~~')" title="删除线">
+              <s>S</s>
+            </el-button>
+          </div>
+          <div class="toolbar-group">
+            <el-button size="small" @click="insertMarkdown('# ', '')" title="标题1">H1</el-button>
+            <el-button size="small" @click="insertMarkdown('## ', '')" title="标题2">H2</el-button>
+            <el-button size="small" @click="insertMarkdown('### ', '')" title="标题3">H3</el-button>
+          </div>
+          <div class="toolbar-group">
+            <el-button size="small" @click="insertMarkdown('- ', '')" title="无序列表">列表</el-button>
+            <el-button size="small" @click="insertMarkdown('1. ', '')" title="有序列表">编号</el-button>
+            <el-button size="small" @click="insertMarkdown('> ', '')" title="引用">引用</el-button>
+          </div>
+          <div class="toolbar-group">
+            <el-button size="small" @click="insertMarkdown('`', '`')" title="行内代码">代码</el-button>
+            <el-button size="small" @click="insertMarkdown('```\n', '\n```')" title="代码块">代码块</el-button>
+            <el-button size="small" @click="insertMarkdown('[', '](url)')" title="链接">链接</el-button>
           </div>
         </div>
 
         <div class="editor-content">
           <div v-if="!showPreview" class="markdown-editor">
             <el-input
+              ref="textareaRef"
               v-model="selectedNote.content"
               type="textarea"
-              :rows="20"
-              placeholder="开始写作..."
+              :rows="18"
+              placeholder="开始写作...支持Markdown格式"
               @input="autoSave"
+              class="markdown-textarea"
             />
           </div>
           <div v-else class="markdown-preview" v-html="renderedMarkdown"></div>
@@ -159,7 +218,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, DocumentAdd } from '@element-plus/icons-vue'
 import { marked } from 'marked'
@@ -195,6 +254,9 @@ const searchQuery = ref('')
 const tagInput = ref('')
 const showCreateCategory = ref(false)
 const autoSaveTimer = ref<NodeJS.Timeout | null>(null)
+const showSidebar = ref(false)
+const isMobile = ref(false)
+const textareaRef = ref()
 
 const newCategory = reactive({
   name: '',
@@ -452,10 +514,49 @@ const deleteCategory = async (category: Category) => {
   }
 }
 
+const insertMarkdown = (before: string, after: string) => {
+  if (!textareaRef.value) return
+  
+  const textarea = textareaRef.value.textarea || textareaRef.value.$refs.textarea
+  if (!textarea) return
+  
+  const start = textarea.selectionStart
+  const end = textarea.selectionEnd
+  const selectedText = selectedNote.value!.content.substring(start, end)
+  
+  const replacement = before + selectedText + after
+  const newContent = 
+    selectedNote.value!.content.substring(0, start) + 
+    replacement + 
+    selectedNote.value!.content.substring(end)
+  
+  selectedNote.value!.content = newContent
+  
+  // 设置新的光标位置
+  nextTick(() => {
+    const newStart = start + before.length
+    const newEnd = newStart + selectedText.length
+    textarea.setSelectionRange(newStart, newEnd)
+    textarea.focus()
+  })
+  
+  autoSave()
+}
+
+const checkMobile = () => {
+  isMobile.value = window.innerWidth < 768
+}
+
 // Lifecycle
 onMounted(() => {
   loadCategories()
   loadNotes()
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
 })
 
 // Watchers
@@ -483,12 +584,35 @@ watch(selectedCategory, (newCategory) => {
   overflow: hidden;
 }
 
+@media (max-width: 768px) {
+  .notebook-layout {
+    height: calc(100vh - 120px);
+  }
+}
+
 .notebook-sidebar {
   width: 250px;
   border-right: 1px solid #e6e6e6;
   display: flex;
   flex-direction: column;
   background: #fafafa;
+  transition: transform 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .notebook-sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 280px;
+    z-index: 10;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  .notebook-sidebar.mobile-hidden {
+    transform: translateX(-100%);
+  }
 }
 
 .sidebar-header {
@@ -535,6 +659,16 @@ watch(selectedCategory, (newCategory) => {
   border-right: 1px solid #e6e6e6;
   display: flex;
   flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .notes-list-panel {
+    width: 100%;
+  }
+  
+  .notes-list-panel.mobile-hidden {
+    display: none;
+  }
 }
 
 .notes-header {
@@ -599,6 +733,18 @@ watch(selectedCategory, (newCategory) => {
   flex-direction: column;
 }
 
+@media (max-width: 768px) {
+  .editor-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: white;
+    z-index: 5;
+  }
+}
+
 .editor-header {
   padding: 16px;
   border-bottom: 1px solid #e6e6e6;
@@ -635,5 +781,94 @@ watch(selectedCategory, (newCategory) => {
 
 .tag-input {
   width: 100%;
+}
+
+.mobile-header {
+  background: white;
+  border-bottom: 1px solid #e6e6e6;
+}
+
+.mobile-back {
+  padding: 8px 16px;
+  border-bottom: 1px solid #e6e6e6;
+}
+
+.markdown-toolbar {
+  padding: 8px 16px;
+  border-bottom: 1px solid #e6e6e6;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: #fafafa;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 4px;
+}
+
+.markdown-textarea {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  line-height: 1.6;
+}
+
+.markdown-preview {
+  line-height: 1.8;
+}
+
+.markdown-preview h1, .markdown-preview h2, .markdown-preview h3 {
+  margin: 16px 0 8px 0;
+  color: #333;
+}
+
+.markdown-preview h1 {
+  font-size: 24px;
+  border-bottom: 2px solid #e6e6e6;
+  padding-bottom: 8px;
+}
+
+.markdown-preview h2 {
+  font-size: 20px;
+  border-bottom: 1px solid #e6e6e6;
+  padding-bottom: 4px;
+}
+
+.markdown-preview h3 {
+  font-size: 16px;
+}
+
+.markdown-preview p {
+  margin: 8px 0;
+}
+
+.markdown-preview code {
+  background: #f5f5f5;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.markdown-preview pre {
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.markdown-preview blockquote {
+  border-left: 4px solid #ddd;
+  padding-left: 16px;
+  margin: 12px 0;
+  color: #666;
+}
+
+.markdown-preview ul, .markdown-preview ol {
+  padding-left: 24px;
+  margin: 8px 0;
+}
+
+.markdown-preview li {
+  margin: 4px 0;
 }
 </style>
