@@ -29,6 +29,32 @@ try {
       description TEXT NOT NULL,
       path TEXT NOT NULL
     );
+    
+    CREATE TABLE IF NOT EXISTS note_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      parent_id INTEGER REFERENCES note_categories(id),
+      user_id INTEGER REFERENCES users(id),
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      category_id INTEGER REFERENCES note_categories(id),
+      user_id INTEGER REFERENCES users(id),
+      tags TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_notes_title ON notes(title);
+    CREATE INDEX IF NOT EXISTS idx_notes_content ON notes(content);
+    CREATE INDEX IF NOT EXISTS idx_notes_category ON notes(category_id);
+    CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id);
+    CREATE INDEX IF NOT EXISTS idx_categories_parent ON note_categories(parent_id);
   `);
   console.log('SQLite database initialized successfully');
 } catch (error) {
