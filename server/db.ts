@@ -1,15 +1,38 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from "@shared/schema";
+import path from 'path';
 
-neonConfig.webSocketConstructor = ws;
+// Create SQLite database file in the project root
+const sqlite = new Database('database.sqlite');
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+// Enable WAL mode for better performance
+sqlite.pragma('journal_mode = WAL');
+
+export const db = drizzle(sqlite, { schema });
+
+// Auto-migrate on startup
+try {
+  // Create tables if they don't exist using SQLite syntax
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE,
+      password TEXT NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS tools (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      description TEXT NOT NULL,
+      path TEXT NOT NULL
+    );
+  `);
+  console.log('SQLite database initialized successfully');
+} catch (error) {
+  console.error('Error initializing SQLite database:', error);
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+export { sqlite };

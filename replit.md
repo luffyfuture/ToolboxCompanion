@@ -17,9 +17,9 @@ This is a full-stack TypeScript web application built with Vue 3 and Express, fe
 ### Backend Architecture
 - **Runtime**: Node.js with TypeScript
 - **Framework**: Express.js with middleware for JSON parsing and request logging
-- **Database**: PostgreSQL with Drizzle ORM for type-safe database operations
-- **Database Provider**: Neon Database (serverless PostgreSQL)
-- **Session Management**: Built-in session handling with connect-pg-simple
+- **Database**: SQLite with Drizzle ORM for type-safe database operations
+- **Database Provider**: Better-sqlite3 for local file-based storage
+- **Session Management**: Built-in session handling with memory store
 - **Development**: Hot reloading with Vite middleware integration
 
 ### Build System
@@ -36,8 +36,8 @@ This is a full-stack TypeScript web application built with Vue 3 and Express, fe
 
 ### Storage Layer (server/storage.ts)
 - **Interface**: IStorage defines CRUD operations for data access
-- **Implementation**: DatabaseStorage provides PostgreSQL-backed storage
-- **Database**: Type-safe operations using Drizzle ORM with Neon serverless PostgreSQL
+- **Implementation**: DatabaseStorage provides SQLite-backed storage
+- **Database**: Type-safe operations using Drizzle ORM with better-sqlite3 for local storage
 
 ### Frontend Tools
 - **Calculator**: Advanced calculator with history and expression parsing
@@ -107,6 +107,7 @@ Changelog:
 - June 21, 2025. Initial setup with React
 - June 21, 2025. Converted to Vue 3 + Element Plus architecture
 - June 21, 2025. Integrated PostgreSQL database with Drizzle ORM
+- June 21, 2025. Switched to SQLite database for local storage
 ```
 
 ## User Preferences
