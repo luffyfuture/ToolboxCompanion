@@ -192,7 +192,7 @@ const tools: Tool[] = [
 const activeToolId = ref('calculator')
 
 const toolCategories = computed(() => {
-  const categories = ['数学工具', '文本工具', '生成器', '系统工具']
+  const categories = ['数学工具', '文本工具', '生成器', '系统工具', '文档工具']
   return categories.map(categoryName => ({
     id: categoryName,
     name: categoryName,
