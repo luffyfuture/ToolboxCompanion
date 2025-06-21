@@ -50,6 +50,20 @@ try {
       updated_at INTEGER NOT NULL
     );
     
+    CREATE TABLE IF NOT EXISTS red_team_commands (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      code TEXT NOT NULL,
+      description TEXT,
+      category TEXT NOT NULL,
+      sub_category TEXT NOT NULL,
+      tags TEXT,
+      user_id INTEGER,
+      is_custom INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    
     CREATE INDEX IF NOT EXISTS idx_notes_title ON notes(title);
     CREATE INDEX IF NOT EXISTS idx_notes_content ON notes(content);
     CREATE INDEX IF NOT EXISTS idx_notes_category ON notes(category_id);
