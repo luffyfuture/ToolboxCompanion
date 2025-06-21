@@ -87,6 +87,7 @@ import ColorPicker from './components/tools/ColorPicker.vue'
 import PasswordGenerator from './components/tools/PasswordGenerator.vue'
 import HashGenerator from './components/tools/HashGenerator.vue'
 import SystemInfo from './components/tools/SystemInfo.vue'
+import Notebook from './components/tools/Notebook.vue'
 
 interface Tool {
   id: string
@@ -177,6 +178,14 @@ const tools: Tool[] = [
     icon: 'info-circle',
     component: SystemInfo,
     category: '系统工具'
+  },
+  {
+    id: 'notebook',
+    name: '笔记本',
+    description: '支持Markdown的智能笔记本',
+    icon: 'book',
+    component: Notebook,
+    category: '文档工具'
   }
 ]
 
