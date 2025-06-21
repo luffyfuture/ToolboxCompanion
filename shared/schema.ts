@@ -1,5 +1,6 @@
 import { pgTable, text, serial, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+import { relations } from "drizzle-orm";
 import { z } from "zod";
 
 export const users = pgTable("users", {
@@ -16,6 +17,14 @@ export const tools = pgTable("tools", {
   description: text("description").notNull(),
   path: text("path").notNull(),
 });
+
+export const usersRelations = relations(users, ({ many }) => ({
+  // Add user relations if needed in the future
+}));
+
+export const toolsRelations = relations(tools, ({ one }) => ({
+  // Add tool relations if needed in the future
+}));
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,

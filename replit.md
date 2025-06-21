@@ -36,8 +36,8 @@ This is a full-stack TypeScript web application built with Vue 3 and Express, fe
 
 ### Storage Layer (server/storage.ts)
 - **Interface**: IStorage defines CRUD operations for data access
-- **Implementation**: MemStorage provides in-memory storage for development
-- **Design**: Easily replaceable with database-backed implementation
+- **Implementation**: DatabaseStorage provides PostgreSQL-backed storage
+- **Database**: Type-safe operations using Drizzle ORM with Neon serverless PostgreSQL
 
 ### Frontend Tools
 - **Calculator**: Advanced calculator with history and expression parsing
@@ -106,6 +106,7 @@ This is a full-stack TypeScript web application built with Vue 3 and Express, fe
 Changelog:
 - June 21, 2025. Initial setup with React
 - June 21, 2025. Converted to Vue 3 + Element Plus architecture
+- June 21, 2025. Integrated PostgreSQL database with Drizzle ORM
 ```
 
 ## User Preferences
