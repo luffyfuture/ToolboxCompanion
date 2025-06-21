@@ -46,6 +46,7 @@ This is a full-stack TypeScript web application built with Vue 3 and Express, fe
 - **Converters**: Unit converter for length, weight, temperature
 - **System Info**: Browser and system information display
 - **Color Picker**: Color format converter (hex, RGB, HSL)
+- **Red Team Commands**: Comprehensive collection of penetration testing commands
 
 ### UI Components
 - **Design System**: Consistent component library with variants
@@ -108,6 +109,8 @@ Changelog:
 - June 21, 2025. Converted to Vue 3 + Element Plus architecture
 - June 21, 2025. Integrated PostgreSQL database with Drizzle ORM
 - June 21, 2025. Switched to SQLite database for local storage
+- June 21, 2025. Added comprehensive notebook system with Markdown support
+- June 21, 2025. Implemented red team commands collection from GitHub repository
 ```
 
 ## User Preferences
