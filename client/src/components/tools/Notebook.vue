@@ -128,57 +128,21 @@
             class="title-input"
           />
           <div class="editor-actions">
-            <el-button @click="togglePreview" :type="showPreview ? 'primary' : 'default'" size="small">
-              {{ showPreview ? '编辑' : '预览' }}
-            </el-button>
             <el-button @click="saveNote" type="primary" size="small">保存</el-button>
             <el-button @click="deleteNote(selectedNote)" type="danger" size="small">删除</el-button>
           </div>
         </div>
 
-        <!-- Markdown toolbar -->
-        <div class="markdown-toolbar" v-if="!showPreview">
-          <div class="toolbar-group">
-            <el-button size="small" @click="insertMarkdown('**', '**')" title="粗体">
-              <strong>B</strong>
-            </el-button>
-            <el-button size="small" @click="insertMarkdown('*', '*')" title="斜体">
-              <em>I</em>
-            </el-button>
-            <el-button size="small" @click="insertMarkdown('~~', '~~')" title="删除线">
-              <s>S</s>
-            </el-button>
-          </div>
-          <div class="toolbar-group">
-            <el-button size="small" @click="insertMarkdown('# ', '')" title="标题1">H1</el-button>
-            <el-button size="small" @click="insertMarkdown('## ', '')" title="标题2">H2</el-button>
-            <el-button size="small" @click="insertMarkdown('### ', '')" title="标题3">H3</el-button>
-          </div>
-          <div class="toolbar-group">
-            <el-button size="small" @click="insertMarkdown('- ', '')" title="无序列表">列表</el-button>
-            <el-button size="small" @click="insertMarkdown('1. ', '')" title="有序列表">编号</el-button>
-            <el-button size="small" @click="insertMarkdown('> ', '')" title="引用">引用</el-button>
-          </div>
-          <div class="toolbar-group">
-            <el-button size="small" @click="insertMarkdown('`', '`')" title="行内代码">代码</el-button>
-            <el-button size="small" @click="insertMarkdown('```\n', '\n```')" title="代码块">代码块</el-button>
-            <el-button size="small" @click="insertMarkdown('[', '](url)')" title="链接">链接</el-button>
-          </div>
-        </div>
-
         <div class="editor-content">
-          <div v-if="!showPreview" class="markdown-editor">
-            <el-input
-              ref="textareaRef"
-              v-model="selectedNote.content"
-              type="textarea"
-              placeholder="开始写作...支持Markdown格式"
-              @input="autoSave"
-              class="markdown-textarea"
-              resize="none"
-            />
-          </div>
-          <div v-else class="markdown-preview" v-html="renderedMarkdown"></div>
+          <MdEditor
+            v-if="selectedNote"
+            v-model="selectedNote.content"
+            @onSave="saveNote"
+            @onChange="autoSave"
+            style="height: 100%;"
+            :toolbarsExclude="['github']"
+            language="zh-CN"
+          />
         </div>
 
         <div class="editor-footer">
@@ -218,11 +182,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue' // Removed nextTick
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, DocumentAdd } from '@element-plus/icons-vue'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
+import { MdEditor } from 'md-editor-v3'
+import 'md-editor-v3/lib/style.css'
 
 interface Note {
   id: number
@@ -249,14 +213,14 @@ const notes = ref<Note[]>([])
 const categories = ref<Category[]>([])
 const selectedNote = ref<Note | null>(null)
 const selectedCategory = ref<Category | null>(null)
-const showPreview = ref(false)
+// const showPreview = ref(false) // Removed
 const searchQuery = ref('')
 const tagInput = ref('')
 const showCreateCategory = ref(false)
-const autoSaveTimer = ref<NodeJS.Timeout | null>(null)
+const autoSaveTimer = ref<ReturnType<typeof setTimeout> | null>(null) // Corrected type
 const showSidebar = ref(false)
 const isMobile = ref(false)
-const textareaRef = ref()
+// const textareaRef = ref() // Removed
 
 const newCategory = reactive({
   name: '',
@@ -299,11 +263,11 @@ const filteredNotes = computed(() => {
   return filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
 })
 
-const renderedMarkdown = computed(() => {
-  if (!selectedNote.value) return ''
-  const html = marked(selectedNote.value.content)
-  return DOMPurify.sanitize(html)
-})
+// const renderedMarkdown = computed(() => { // Removed
+//   if (!selectedNote.value) return ''
+//   // const html = marked(selectedNote.value.content) // md-editor-v3 handles this
+//   // return DOMPurify.sanitize(html) // md-editor-v3 handles sanitization
+// })
 
 // Methods
 const loadCategories = async () => {
@@ -311,8 +275,11 @@ const loadCategories = async () => {
     const response = await fetch('/api/note-categories?userId=1')
     if (response.ok) {
       categories.value = await response.json()
+    } else {
+      ElMessage.error('加载分类失败')
     }
   } catch (error) {
+    console.error('Error loading categories:', error)
     ElMessage.error('加载分类失败')
   }
 }
@@ -320,13 +287,16 @@ const loadCategories = async () => {
 const loadNotes = async (categoryId?: number) => {
   try {
     const url = categoryId 
-      ? `/api/notes?userId=1&categoryId=${categoryId}`
-      : '/api/notes?userId=1'
+      ? `/api/notes?userId=1&categoryId=${categoryId}` // Assuming userId=1
+      : '/api/notes?userId=1' // Assuming userId=1
     const response = await fetch(url)
     if (response.ok) {
       notes.value = await response.json()
+    } else {
+      ElMessage.error('加载笔记失败')
     }
   } catch (error) {
+    console.error('Error loading notes:', error)
     ElMessage.error('加载笔记失败')
   }
 }
@@ -344,7 +314,7 @@ const createCategory = async () => {
       body: JSON.stringify({
         name: newCategory.name,
         parentId: newCategory.parentId || null,
-        userId: 1
+        userId: 1 // Assuming userId=1
       })
     })
     
@@ -354,8 +324,11 @@ const createCategory = async () => {
       newCategory.parentId = null
       showCreateCategory.value = false
       await loadCategories()
+    } else {
+      ElMessage.error('创建分类失败')
     }
   } catch (error) {
+    console.error('Error creating category:', error)
     ElMessage.error('创建分类失败')
   }
 }
@@ -367,19 +340,22 @@ const createNote = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: '新建笔记',
-        content: '',
+        content: '', // md-editor-v3 will provide initial content if any
         categoryId: selectedCategory.value?.id || null,
-        userId: 1
+        userId: 1 // Assuming userId=1
       })
     })
     
     if (response.ok) {
       const newNote = await response.json()
-      notes.value.unshift(newNote)
+      notes.value.unshift(newNote) // Add to the beginning of the list
       selectedNote.value = newNote
       ElMessage.success('笔记创建成功')
+    } else {
+      ElMessage.error('创建笔记失败')
     }
   } catch (error) {
+    console.error('Error creating note:', error)
     ElMessage.error('创建笔记失败')
   }
 }
@@ -402,11 +378,14 @@ const saveNote = async () => {
       const updatedNote = await response.json()
       const index = notes.value.findIndex(n => n.id === updatedNote.id)
       if (index !== -1) {
-        notes.value[index] = updatedNote
+        notes.value[index] = { ...notes.value[index], ...updatedNote } // Ensure reactivity
       }
       ElMessage.success('保存成功')
+    } else {
+      ElMessage.error('保存失败')
     }
   } catch (error) {
+    console.error('Error saving note:', error)
     ElMessage.error('保存失败')
   }
 }
@@ -427,9 +406,12 @@ const deleteNote = async (note: Note) => {
         selectedNote.value = null
       }
       ElMessage.success('删除成功')
+    } else {
+      ElMessage.error('删除失败')
     }
   } catch (error) {
-    if (error !== 'cancel') {
+    if (error !== 'cancel') { // To avoid error message on cancel
+      console.error('Error deleting note:', error)
       ElMessage.error('删除失败')
     }
   }
@@ -442,17 +424,21 @@ const selectNote = (note: Note) => {
 
 const handleCategoryClick = (category: Category) => {
   selectedCategory.value = category
-  loadNotes(category.id)
+  // loadNotes(category.id) // This will be triggered by the watcher
 }
 
 const handleSearch = async () => {
+  // Debounce this if called frequently on input
   if (searchQuery.value.trim()) {
     try {
-      const response = await fetch(`/api/notes/search?userId=1&q=${encodeURIComponent(searchQuery.value)}`)
+      const response = await fetch(`/api/notes/search?userId=1&q=${encodeURIComponent(searchQuery.value)}`) // Assuming userId=1
       if (response.ok) {
         notes.value = await response.json()
+      } else {
+        ElMessage.error('搜索失败')
       }
     } catch (error) {
+      console.error('Error searching notes:', error)
       ElMessage.error('搜索失败')
     }
   } else {
@@ -465,25 +451,34 @@ const autoSave = () => {
     clearTimeout(autoSaveTimer.value)
   }
   autoSaveTimer.value = setTimeout(() => {
-    saveNote()
-  }, 2000)
+    if (selectedNote.value) { // Ensure selectedNote exists before saving
+        saveNote()
+    }
+  }, 1500) // Adjusted auto-save delay
 }
 
-// 移除原有的预览切换功能，md-editor-v3内置预览功能
+// togglePreview removed
 
 const updateTags = () => {
   if (selectedNote.value) {
-    selectedNote.value.tags = tagInput.value ? JSON.stringify(tagInput.value.split(',').map(t => t.trim())) : null
-    autoSave()
+    // selectedNote.value.tags = tagInput.value ? JSON.stringify(tagInput.value.split(',').map(t => t.trim())) : null
+    // autoSave() // Save will be triggered by content change or explicit save
+    // We might want to save immediately when tags change or just update the ref and let autoSave handle it.
+    // For now, let's trigger saveNote directly if tags change.
+    saveNote();
   }
 }
 
 const getPreview = (content: string) => {
-  return content.substring(0, 100) + (content.length > 100 ? '...' : '')
+  // This preview is for the notes list, not the editor itself.
+  // md-editor-v3 will handle its own preview.
+  // We can generate a plain text preview here.
+  const plainText = content.replace(/<[^>]*>?/gm, '').replace(/[#*`->]/g, '') // Basic removal of markdown/html
+  return plainText.substring(0, 100) + (plainText.length > 100 ? '...' : '')
 }
 
-const formatDate = (date: Date) => {
-  return new Date(date).toLocaleString('zh-CN')
+const formatDate = (date: Date | string) => { // Allow string for flexibility if API returns string
+  return new Date(date).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 const editCategory = (category: Category) => {
@@ -493,7 +488,7 @@ const editCategory = (category: Category) => {
 
 const deleteCategory = async (category: Category) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个分类吗？', '确认删除', {
+    await ElMessageBox.confirm(`确定要删除分类 "${category.name}" 吗？其下的所有笔记将被取消分类。`, '确认删除', {
       type: 'warning'
     })
     
@@ -503,43 +498,20 @@ const deleteCategory = async (category: Category) => {
     
     if (response.ok) {
       await loadCategories()
+      await loadNotes() // Refresh notes as some might be uncategorized
       ElMessage.success('分类删除成功')
+    } else {
+      ElMessage.error('删除分类失败')
     }
   } catch (error) {
-    if (error !== 'cancel') {
+     if (error !== 'cancel') {
+      console.error('Error deleting category:', error)
       ElMessage.error('删除分类失败')
     }
   }
 }
 
-const insertMarkdown = (before: string, after: string) => {
-  if (!textareaRef.value) return
-  
-  const textarea = textareaRef.value.textarea || textareaRef.value.$refs.textarea
-  if (!textarea) return
-  
-  const start = textarea.selectionStart
-  const end = textarea.selectionEnd
-  const selectedText = selectedNote.value!.content.substring(start, end)
-  
-  const replacement = before + selectedText + after
-  const newContent = 
-    selectedNote.value!.content.substring(0, start) + 
-    replacement + 
-    selectedNote.value!.content.substring(end)
-  
-  selectedNote.value!.content = newContent
-  
-  // 设置新的光标位置
-  nextTick(() => {
-    const newStart = start + before.length
-    const newEnd = newStart + selectedText.length
-    textarea.setSelectionRange(newStart, newEnd)
-    textarea.focus()
-  })
-  
-  autoSave()
-}
+// insertMarkdown function removed
 
 const checkMobile = () => {
   isMobile.value = window.innerWidth < 768
@@ -548,23 +520,23 @@ const checkMobile = () => {
 // Lifecycle
 onMounted(() => {
   loadCategories()
-  loadNotes()
+  loadNotes() // Load all notes initially
   checkMobile()
   window.addEventListener('resize', checkMobile)
 })
 
 onUnmounted(() => {
+  if (autoSaveTimer.value) {
+    clearTimeout(autoSaveTimer.value)
+  }
   window.removeEventListener('resize', checkMobile)
 })
 
 // Watchers
 watch(selectedCategory, (newCategory) => {
-  if (newCategory) {
-    loadNotes(newCategory.id)
-  } else {
-    loadNotes()
-  }
+  loadNotes(newCategory?.id) // Use optional chaining
 })
+
 </script>
 
 <style scoped>
@@ -578,15 +550,15 @@ watch(selectedCategory, (newCategory) => {
 .notebook-layout {
   display: flex;
   flex: 1;
-  height: calc(100vh - 120px);
+  height: calc(100vh - 120px); /* Adjust as needed */
   border: 1px solid #e6e6e6;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: hidden; /* This is important */
 }
 
 @media (max-width: 768px) {
   .notebook-layout {
-    height: calc(100vh - 160px);
+    height: calc(100vh - 160px); /* Adjust as needed for mobile header */
   }
 }
 
@@ -597,6 +569,7 @@ watch(selectedCategory, (newCategory) => {
   flex-direction: column;
   background: #fafafa;
   transition: transform 0.3s ease;
+  flex-shrink: 0; /* Prevent sidebar from shrinking */
 }
 
 @media (max-width: 768px) {
@@ -639,6 +612,11 @@ watch(selectedCategory, (newCategory) => {
   padding: 8px;
 }
 
+.category-tree {
+ /* Make sure the tree itself doesn't cause overflow issues if names are too long */
+  word-break: break-all;
+}
+
 .tree-node {
   display: flex;
   justify-content: space-between;
@@ -647,7 +625,8 @@ watch(selectedCategory, (newCategory) => {
 }
 
 .node-actions {
-  display: none;
+  display: none; /* Hidden by default, shown on hover */
+  white-space: nowrap; /* Prevent actions from wrapping */
 }
 
 .tree-node:hover .node-actions {
@@ -659,11 +638,12 @@ watch(selectedCategory, (newCategory) => {
   border-right: 1px solid #e6e6e6;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0; /* Prevent panel from shrinking */
 }
 
 @media (max-width: 768px) {
   .notes-list-panel {
-    width: 100%;
+    width: 100%; /* Take full width on mobile when active */
   }
   
   .notes-list-panel.mobile-hidden {
@@ -702,7 +682,7 @@ watch(selectedCategory, (newCategory) => {
 
 .note-item.active {
   background-color: #e6f7ff;
-  border-left: 3px solid #1890ff;
+  border-left: 3px solid #1890ff; /* Highlight active note */
 }
 
 .note-title {
@@ -710,6 +690,9 @@ watch(selectedCategory, (newCategory) => {
   font-size: 14px;
   margin-bottom: 4px;
   color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .note-preview {
@@ -717,6 +700,13 @@ watch(selectedCategory, (newCategory) => {
   color: #666;
   margin-bottom: 8px;
   line-height: 1.4;
+  /* For multi-line ellipsis (might need JS for perfect cross-browser) */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 2.8em; /* 2 lines * 1.4 line-height */
 }
 
 .note-meta {
@@ -728,20 +718,22 @@ watch(selectedCategory, (newCategory) => {
 }
 
 .editor-panel {
-  flex: 1;
+  flex: 1; /* Take remaining space */
   display: flex;
   flex-direction: column;
+  min-width: 0; /* Crucial for flex items that might overflow */
+  overflow: hidden; /* Let children handle their scroll */
 }
 
 @media (max-width: 768px) {
   .editor-panel {
-    position: absolute;
+    position: absolute; /* Overlay other panels on mobile when active */
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: white;
-    z-index: 5;
+    background: white; /* Ensure it covers content below */
+    z-index: 5; /* Above notes list */
   }
 }
 
@@ -754,33 +746,15 @@ watch(selectedCategory, (newCategory) => {
 }
 
 .title-input {
-  flex: 1;
+  flex: 1; /* Title input takes available space */
 }
 
 .editor-content {
-  flex: 1;
-  overflow: hidden;
+  flex: 1; /* Editor content (MdEditor) takes remaining height */
   display: flex;
   flex-direction: column;
-}
-
-.markdown-editor {
-  flex: 1;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-}
-
-.markdown-textarea {
-  flex: 1 !important;
-  height: 100% !important;
-}
-
-.markdown-preview {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
-  background: #fff;
+  min-height: 0; /* Allows MdEditor to shrink and grow properly */
+  overflow: hidden; /* MdEditor will handle its own scrolling */
 }
 
 .editor-footer {
@@ -802,90 +776,15 @@ watch(selectedCategory, (newCategory) => {
   border-bottom: 1px solid #e6e6e6;
 }
 
-.markdown-toolbar {
-  padding: 8px 16px;
-  border-bottom: 1px solid #e6e6e6;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  background: #fafafa;
-}
+/* Removed styles for .markdown-toolbar, .markdown-textarea, .markdown-preview
+   as md-editor-v3 handles its own styling and preview. */
 
-.toolbar-group {
-  display: flex;
-  gap: 4px;
-}
-
-.markdown-textarea {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  line-height: 1.6;
-}
-
-.markdown-textarea :deep(.el-textarea__inner) {
+/* Ensure md-editor-v3 takes full height within its container */
+:deep(.md-editor) {
   height: 100% !important;
-  min-height: 400px !important;
-  resize: none !important;
-  border: none !important;
-  box-shadow: none !important;
+}
+:deep(.md-editor-preview-wrapper){
+  height: 100% !important;
 }
 
-.markdown-preview {
-  line-height: 1.8;
-}
-
-.markdown-preview h1, .markdown-preview h2, .markdown-preview h3 {
-  margin: 16px 0 8px 0;
-  color: #333;
-}
-
-.markdown-preview h1 {
-  font-size: 24px;
-  border-bottom: 2px solid #e6e6e6;
-  padding-bottom: 8px;
-}
-
-.markdown-preview h2 {
-  font-size: 20px;
-  border-bottom: 1px solid #e6e6e6;
-  padding-bottom: 4px;
-}
-
-.markdown-preview h3 {
-  font-size: 16px;
-}
-
-.markdown-preview p {
-  margin: 8px 0;
-}
-
-.markdown-preview code {
-  background: #f5f5f5;
-  padding: 2px 4px;
-  border-radius: 3px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-}
-
-.markdown-preview pre {
-  background: #f5f5f5;
-  padding: 12px;
-  border-radius: 6px;
-  overflow-x: auto;
-  margin: 12px 0;
-}
-
-.markdown-preview blockquote {
-  border-left: 4px solid #ddd;
-  padding-left: 16px;
-  margin: 12px 0;
-  color: #666;
-}
-
-.markdown-preview ul, .markdown-preview ol {
-  padding-left: 24px;
-  margin: 8px 0;
-}
-
-.markdown-preview li {
-  margin: 4px 0;
-}
 </style>
