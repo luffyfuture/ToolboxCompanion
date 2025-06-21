@@ -2,18 +2,17 @@
 
 ## Overview
 
-This is a full-stack TypeScript web application built with React and Express, featuring a collection of utility tools like calculators, text processors, and converters. The application follows a modern architecture with a React frontend using shadcn/ui components, an Express backend with TypeScript, and PostgreSQL database integration via Drizzle ORM.
+This is a full-stack TypeScript web application built with Vue 3 and Express, featuring a collection of utility tools like calculators, text processors, and converters. The application follows a modern architecture with a Vue 3 frontend using Element Plus components, an Express backend with TypeScript, and PostgreSQL database integration via Drizzle ORM.
 
 ## System Architecture
 
 ### Frontend Architecture
-- **Framework**: React 18 with TypeScript
+- **Framework**: Vue 3 with TypeScript and Composition API
 - **Build Tool**: Vite for fast development and building
-- **UI Library**: shadcn/ui components built on Radix UI primitives
-- **Styling**: Tailwind CSS with custom CSS variables for theming
-- **Routing**: Wouter for lightweight client-side routing
-- **State Management**: TanStack Query (React Query) for server state management
-- **Form Handling**: React Hook Form with Zod validation
+- **UI Library**: Element Plus components with comprehensive Vue 3 support
+- **Styling**: Element Plus theming with custom CSS
+- **State Management**: Vue 3 reactive system with ref and computed
+- **Component Structure**: Single File Components (.vue) with script setup syntax
 
 ### Backend Architecture
 - **Runtime**: Node.js with TypeScript
@@ -105,7 +104,8 @@ This is a full-stack TypeScript web application built with React and Express, fe
 
 ```
 Changelog:
-- June 21, 2025. Initial setup
+- June 21, 2025. Initial setup with React
+- June 21, 2025. Converted to Vue 3 + Element Plus architecture
 ```
 
 ## User Preferences
