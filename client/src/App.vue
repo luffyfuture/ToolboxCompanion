@@ -26,7 +26,9 @@
               :index="tool.id"
               class="tool-menu-item"
             >
-              <el-icon><component :is="tool.icon" /></el-icon>
+              <el-icon>
+                <i :class="getIconClass(tool.icon)"></i>
+              </el-icon>
               <span>{{ tool.name }}</span>
             </el-menu-item>
           </div>
@@ -44,7 +46,9 @@
       <el-main class="toolbox-main">
         <div class="tool-header">
           <div class="tool-info">
-            <el-icon size="20"><component :is="activeTool.icon" /></el-icon>
+            <el-icon size="20">
+              <i :class="getIconClass(activeTool.icon)"></i>
+            </el-icon>
             <div>
               <h2>{{ activeTool.name }}</h2>
               <p>{{ activeTool.description }}</p>
@@ -98,7 +102,7 @@ const tools: Tool[] = [
     id: 'calculator',
     name: '计算器',
     description: '进行基本数学计算',
-    icon: 'Calculator',
+    icon: 'calculator',
     component: SimpleCalculator,
     category: '数学工具'
   },
@@ -106,7 +110,7 @@ const tools: Tool[] = [
     id: 'unit-converter',
     name: '单位转换',
     description: '转换不同的单位',
-    icon: 'Operation',
+    icon: 'exchange-alt',
     component: UnitConverter,
     category: '数学工具'
   },
@@ -114,7 +118,7 @@ const tools: Tool[] = [
     id: 'text-counter',
     name: '文本统计',
     description: '统计字符、单词和行数',
-    icon: 'Document',
+    icon: 'align-left',
     component: TextCounter,
     category: '文本工具'
   },
@@ -122,7 +126,7 @@ const tools: Tool[] = [
     id: 'case-converter',
     name: '大小写转换',
     description: '转换文本大小写格式',
-    icon: 'Edit',
+    icon: 'font',
     component: CaseConverter,
     category: '文本工具'
   },
@@ -130,7 +134,7 @@ const tools: Tool[] = [
     id: 'base64',
     name: 'Base64编码',
     description: '编码和解码Base64文本',
-    icon: 'Link',
+    icon: 'code',
     component: Base64Encoder,
     category: '文本工具'
   },
@@ -138,7 +142,7 @@ const tools: Tool[] = [
     id: 'qr-generator',
     name: '二维码生成',
     description: '从文本生成二维码',
-    icon: 'Picture',
+    icon: 'qrcode',
     component: QRGenerator,
     category: '生成器'
   },
@@ -146,7 +150,7 @@ const tools: Tool[] = [
     id: 'color-picker',
     name: '颜色选择器',
     description: '选择和转换颜色',
-    icon: 'Brush',
+    icon: 'palette',
     component: ColorPicker,
     category: '生成器'
   },
@@ -154,7 +158,7 @@ const tools: Tool[] = [
     id: 'password-generator',
     name: '密码生成器',
     description: '生成安全密码',
-    icon: 'Key',
+    icon: 'key',
     component: PasswordGenerator,
     category: '生成器'
   },
@@ -162,7 +166,7 @@ const tools: Tool[] = [
     id: 'hash-generator',
     name: '哈希生成器',
     description: '生成哈希值',
-    icon: 'Lock',
+    icon: 'fingerprint',
     component: HashGenerator,
     category: '系统工具'
   },
@@ -170,7 +174,7 @@ const tools: Tool[] = [
     id: 'system-info',
     name: '系统信息',
     description: '查看系统信息',
-    icon: 'Monitor',
+    icon: 'info-circle',
     component: SystemInfo,
     category: '系统工具'
   }
@@ -193,6 +197,10 @@ const activeTool = computed(() => {
 
 const handleToolSelect = (toolId: string) => {
   activeToolId.value = toolId
+}
+
+const getIconClass = (iconName: string) => {
+  return `fas fa-${iconName}`
 }
 </script>
 
