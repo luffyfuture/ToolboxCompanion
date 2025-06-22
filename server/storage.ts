@@ -3,17 +3,20 @@ import {
   notes, 
   noteCategories,
   redTeamCommands,
-  type User, 
+  vulnerabilities,
+  type User,
   type InsertUser,
   type Note,
   type InsertNote,
   type NoteCategory,
   type InsertNoteCategory,
   type RedTeamCommand,
-  type InsertRedTeamCommand
+  type InsertRedTeamCommand,
+  type Vulnerability,
+  type InsertVulnerability
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, like, or, desc, asc, and } from "drizzle-orm";
+import { eq, like, or, desc, asc, and, isNotNull, ne } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -43,6 +46,16 @@ export interface IStorage {
   deleteRedTeamCommand(id: number): Promise<void>;
   searchRedTeamCommands(query: string, userId?: number): Promise<RedTeamCommand[]>;
   getRedTeamCommandCategories(): Promise<{category: string, subCategories: string[]}[]>;
+
+  // Vulnerabilities
+  getVulnerabilities(userId?: number, severity?: string, source?: string): Promise<Vulnerability[]>;
+  getVulnerability(id: number): Promise<Vulnerability | undefined>;
+  createVulnerability(vulnerability: InsertVulnerability): Promise<Vulnerability>;
+  updateVulnerability(id: number, vulnerability: Partial<InsertVulnerability>): Promise<Vulnerability>;
+  deleteVulnerability(id: number): Promise<void>;
+  searchVulnerabilities(query: string, userId?: number): Promise<Vulnerability[]>;
+  getVulnerabilitySources(): Promise<string[]>;
+  getVulnerabilitySeverities(): Promise<string[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -334,6 +347,118 @@ export class DatabaseStorage implements IStorage {
       category,
       subCategories: Array.from(subCategories)
     }));
+  }
+
+  // Vulnerabilities implementation
+  async getVulnerabilities(userId?: number, severity?: string, source?: string): Promise<Vulnerability[]> {
+    try {
+      let whereConditions = [];
+      if (userId) {
+        whereConditions.push(eq(vulnerabilities.userId, userId));
+      }
+      if (severity) {
+        whereConditions.push(eq(vulnerabilities.severity, severity));
+      }
+      if (source) {
+        whereConditions.push(eq(vulnerabilities.source, source));
+      }
+
+      let query = db.select().from(vulnerabilities);
+
+      if (whereConditions.length > 0) {
+        query = query.where(whereConditions.length === 1 ? whereConditions[0] : and(...whereConditions as any)) as any;
+      }
+
+      const results = await query.orderBy(desc(vulnerabilities.publishedDate));
+      return results;
+    } catch (error) {
+      console.error('Storage: Error in getVulnerabilities:', error);
+      throw error;
+    }
+  }
+
+  async getVulnerability(id: number): Promise<Vulnerability | undefined> {
+    const [vulnerability] = await db
+      .select()
+      .from(vulnerabilities)
+      .where(eq(vulnerabilities.id, id));
+    return vulnerability || undefined;
+  }
+
+  async createVulnerability(vulnerability: InsertVulnerability): Promise<Vulnerability> {
+    const now = new Date();
+    try {
+      const [newVulnerability] = await db
+        .insert(vulnerabilities)
+        .values({
+          ...vulnerability,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+      return newVulnerability;
+    } catch (error) {
+      console.error('Error creating vulnerability:', error);
+      throw error;
+    }
+  }
+
+  async updateVulnerability(id: number, vulnerability: Partial<InsertVulnerability>): Promise<Vulnerability> {
+    const [updatedVulnerability] = await db
+      .update(vulnerabilities)
+      .set({
+        ...vulnerability,
+        updatedAt: new Date(),
+      })
+      .where(eq(vulnerabilities.id, id))
+      .returning();
+
+    if (!updatedVulnerability) {
+      throw new Error('Vulnerability not found');
+    }
+
+    return updatedVulnerability;
+  }
+
+  async deleteVulnerability(id: number): Promise<void> {
+    await db
+      .delete(vulnerabilities)
+      .where(eq(vulnerabilities.id, id));
+  }
+
+  async searchVulnerabilities(query: string, userId?: number): Promise<Vulnerability[]> {
+    const searchResults = await db
+      .select()
+      .from(vulnerabilities)
+      .where(
+        and(
+          userId ? eq(vulnerabilities.userId, userId) : undefined,
+          or(
+            like(vulnerabilities.title, `%${query}%`),
+            like(vulnerabilities.description, `%${query}%`),
+            like(vulnerabilities.cveId, `%${query}%`),
+            like(vulnerabilities.source, `%${query}%`)
+          )
+        )
+      )
+      .orderBy(desc(vulnerabilities.publishedDate));
+    return searchResults;
+  }
+
+  async getVulnerabilitySources(): Promise<string[]> {
+    const results = await db
+      .selectDistinct({ source: vulnerabilities.source })
+      .from(vulnerabilities)
+      .where(and(isNotNull(vulnerabilities.source), ne(vulnerabilities.source, '')));
+    return results.map(r => r.source);
+  }
+
+  async getVulnerabilitySeverities(): Promise<string[]> {
+    const results = await db
+      .selectDistinct({ severity: vulnerabilities.severity })
+      .from(vulnerabilities)
+      .where(and(isNotNull(vulnerabilities.severity), ne(vulnerabilities.severity, '')));
+    return results.map(r => r.severity);
   }
 }
 

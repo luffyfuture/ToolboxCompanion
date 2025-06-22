@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { insertUserSchema, insertNoteSchema, insertNoteCategorySchema, insertRedTeamCommandSchema } from "@shared/schema";
+import { insertUserSchema, insertNoteSchema, insertNoteCategorySchema, insertRedTeamCommandSchema, insertVulnerabilitySchema } from "@shared/schema";
 import { storage } from "./storage";
 import { ZodError } from "zod";
+import { crawlVulnerabilities } from "./vuln-crawler";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes
@@ -282,8 +283,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to delete command" });
     }
   });
+ 
+  // Vulnerabilities routes
+  app.get("/api/vulnerabilities", async (req, res) => {
+    try {
+      const { userId, severity, source } = req.query;
+      const vulnerabilities = await storage.getVulnerabilities(
+        userId ? Number(userId) : undefined,
+        severity as string,
+        source as string
+      );
+      res.json(vulnerabilities);
+    } catch (error) {
+      console.error("Get vulnerabilities error:", error);
+      res.status(500).json({ error: "Failed to get vulnerabilities" });
+    }
+  });
 
-  const httpServer = createServer(app);
+  app.get("/api/vulnerabilities/:id", async (req, res) => {
+    try {
+      const vulnerability = await storage.getVulnerability(Number(req.params.id));
+      if (!vulnerability) {
+        return res.status(404).json({ error: "Vulnerability not found" });
+      }
+      res.json(vulnerability);
+    } catch (error) {
+      console.error("Get vulnerability error:", error);
+      res.status(500).json({ error: "Failed to get vulnerability" });
+    }
+  });
 
-  return httpServer;
-}
+  app.post("/api/vulnerabilities", async (req, res) => {
+    try {
+      console.log('Creating vulnerability with data:', req.body);
+      const vulnerabilityData = insertVulnerabilitySchema.parse({
+        title: req.body.title,
+        description: req.body.description,
+        cveId: req.body.cveId || null,
+        severity: req.body.severity,
+        publishedDate: new Date(req.body.publishedDate),
+        source: req.body.source,
+        url: req.body.url,
+        userId: req.body.userId || null,
+      });
+      const vulnerability = await storage.createVulnerability(vulnerabilityData);
+      res.json(vulnerability);
+    } catch (error) {
+      console.error('Vulnerability creation error:', error);
+      if (error instanceof ZodError) {
+        res.status(400).json({ error: "Invalid vulnerability data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create vulnerability", details: (error as Error).message });
+      }
+    }
+  });
+
+  app.put("/api/vulnerabilities/:id", async (req, res) => {
+    try {
+      const vulnerabilityData = insertVulnerabilitySchema.partial().parse(req.body);
+      const vulnerability = await storage.updateVulnerability(Number(req.params.id), vulnerabilityData);
+      res.json(vulnerability);
+    } catch (error) {
+      console.error("Update vulnerability error:", error);
+      if (error instanceof ZodError) {
+        res.status(400).json({ error: "Invalid vulnerability data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to update vulnerability" });
+      }
+    }
+  });
+
+  app.delete("/api/vulnerabilities/:id", async (req, res) => {
+    try {
+      await storage.deleteVulnerability(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete vulnerability error:", error);
+      res.status(500).json({ error: "Failed to delete vulnerability" });
+    }
+  });
+
+  app.get("/api/vulnerabilities/search", async (req, res) => {
+    try {
+      const { q, userId } = req.query;
+      if (!q || typeof q !== 'string') {
+        return res.status(400).json({ error: "Query parameter required" });
+      }
+      const vulnerabilities = await storage.searchVulnerabilities(q, userId ? Number(userId) : undefined);
+      res.json(vulnerabilities);
+    } catch (error) {
+      console.error("Search vulnerabilities error:", error);
+      res.status(500).json({ error: "Failed to search vulnerabilities" });
+    }
+  });
+
+  app.get("/api/vulnerabilities/sources", async (req, res) => {
+    try {
+      const sources = await storage.getVulnerabilitySources();
+      res.json(sources);
+    } catch (error) {
+      console.error("Get vulnerability sources error:", error);
+      res.status(500).json({ error: "Failed to get sources" });
+    }
+  });
+
+  app.get("/api/vulnerabilities/severities", async (req, res) => {
+    try {
+      const severities = await storage.getVulnerabilitySeverities();
+      res.json(severities);
+    } catch (error) {
+      console.error("Get vulnerability severities error:", error);
+      res.status(500).json({ error: "Failed to get severities" });
+    }
+  });
+
+  app.post("/api/vulnerabilities/crawl", async (req, res) => {
+    try {
+      const { source } = req.body;
+      if (!source) {
+        return res.status(400).json({ error: "Source parameter is required" });
+      }
+      await crawlVulnerabilities(source);
+      res.json({ success: true, message: `Vulnerabilities from ${source} crawled successfully.` });
+    } catch (error) {
+      console.error("Vulnerability crawl error:", error);
+      res.status(500).json({ error: "Failed to crawl vulnerabilities" });
+    }
+  });
+ 
+   const httpServer = createServer(app);
+ 
+   return httpServer;
+ }

@@ -52,6 +52,20 @@ export const redTeamCommands = sqliteTable("red_team_commands", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
 
+export const vulnerabilities = sqliteTable("vulnerabilities", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  cveId: text("cve_id"),
+  severity: text("severity").notNull(),
+  publishedDate: integer("published_date", { mode: "timestamp" }).notNull(),
+  source: text("source").notNull(),
+  url: text("url").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  userId: integer("user_id"),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   notes: many(notes),
   noteCategories: many(noteCategories),
@@ -88,6 +102,13 @@ export const notesRelations = relations(notes, ({ one }) => ({
 export const redTeamCommandsRelations = relations(redTeamCommands, ({ one }) => ({
   user: one(users, {
     fields: [redTeamCommands.userId],
+    references: [users.id],
+  }),
+}));
+
+export const vulnerabilitiesRelations = relations(vulnerabilities, ({ one }) => ({
+  user: one(users, {
+    fields: [vulnerabilities.userId],
     references: [users.id],
   }),
 }));
@@ -130,6 +151,17 @@ export const insertRedTeamCommandSchema = createInsertSchema(redTeamCommands).pi
   isCustom: true,
 });
 
+export const insertVulnerabilitySchema = createInsertSchema(vulnerabilities).pick({
+  title: true,
+  description: true,
+  cveId: true,
+  severity: true,
+  publishedDate: true,
+  source: true,
+  url: true,
+  userId: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertTool = z.infer<typeof insertToolSchema>;
@@ -140,3 +172,5 @@ export type InsertNote = z.infer<typeof insertNoteSchema>;
 export type Note = typeof notes.$inferSelect;
 export type InsertRedTeamCommand = z.infer<typeof insertRedTeamCommandSchema>;
 export type RedTeamCommand = typeof redTeamCommands.$inferSelect;
+export type InsertVulnerability = z.infer<typeof insertVulnerabilitySchema>;
+export type Vulnerability = typeof vulnerabilities.$inferSelect;

@@ -77,8 +77,7 @@ import {
 } from '@element-plus/icons-vue'
 
 // 导入工具组件
-import SimpleCalculator from './components/tools/SimpleCalculator.vue'
-import UnitConverter from './components/tools/UnitConverter.vue'
+import AdvancedCalculator from './components/tools/AdvancedCalculator.vue'
 import TextCounter from './components/tools/TextCounter.vue'
 import CaseConverter from './components/tools/CaseConverter.vue'
 import Base64Encoder from './components/tools/Base64Encoder.vue'
@@ -89,6 +88,7 @@ import HashGenerator from './components/tools/HashGenerator.vue'
 import SystemInfo from './components/tools/SystemInfo.vue'
 import Notebook from './components/tools/Notebook.vue'
 import RedTeamCommands from './components/tools/RedTeamCommands.vue'
+import VulnerabilityCrawler from './components/tools/VulnerabilityCrawler.vue'
 
 interface Tool {
   id: string
@@ -101,19 +101,11 @@ interface Tool {
 
 const tools: Tool[] = [
   {
-    id: 'calculator',
+    id: 'advanced-calculator',
     name: '计算器',
-    description: '进行基本数学计算',
+    description: '多功能计算器(基本运算/进制转换/位运算/哈希计算)',
     icon: 'calculator',
-    component: SimpleCalculator,
-    category: '数学工具'
-  },
-  {
-    id: 'unit-converter',
-    name: '单位转换',
-    description: '转换不同的单位',
-    icon: 'exchange-alt',
-    component: UnitConverter,
+    component: AdvancedCalculator,
     category: '数学工具'
   },
   {
@@ -195,13 +187,21 @@ const tools: Tool[] = [
     icon: 'terminal',
     component: RedTeamCommands,
     category: '安全工具'
+  },
+  {
+    id: 'vulnerability-crawler',
+    name: '漏洞抓取',
+    description: '抓取和管理漏洞信息',
+    icon: 'bug',
+    component: VulnerabilityCrawler,
+    category: '安全工具'
   }
 ]
 
-const activeToolId = ref('calculator')
+const activeToolId = ref('advanced-calculator')
 
 const toolCategories = computed(() => {
-  const categories = ['数学工具', '文本工具', '生成器', '系统工具', '文档工具', '安全工具']
+  const categories = ['数学工具', '文本工具', '生成器', '系统工具', '文档工具', '安全工具'] // 确保 '安全工具' 存在
   return categories.map(categoryName => ({
     id: categoryName,
     name: categoryName,

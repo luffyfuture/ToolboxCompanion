@@ -473,7 +473,7 @@ const getPreview = (content: string) => {
   // This preview is for the notes list, not the editor itself.
   // md-editor-v3 will handle its own preview.
   // We can generate a plain text preview here.
-  const plainText = content.replace(/<[^>]*>?/gm, '').replace(/[#*`->]/g, '') // Basic removal of markdown/html
+  const plainText = content.replace(/<[^>]*>?/gm, '').replace(/[#*`>\-]/g, '') // Basic removal of markdown/html
   return plainText.substring(0, 100) + (plainText.length > 100 ? '...' : '')
 }
 
